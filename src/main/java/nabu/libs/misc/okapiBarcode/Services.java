@@ -49,11 +49,22 @@ public class Services {
 		Symbol symbol = type.getTargetClass().newInstance();
 		symbol.setHumanReadableLocation(humanReadableLocation == null ? HumanReadableLocation.NONE : humanReadableLocation);
 		symbol.setHumanReadableAlignment(humanReadableAlignment);
+		symbol.setFontName("Monospaced");
+		symbol.setFontSize(16);
+		// does not seem to work in most cases
+//		symbol.setBarHeight(height == null ? 100 : height);
+		// seems to stretch it, not sure what it is useful for?
+		// in for example the data matrix code, it serves as the height of a row, in the qr the height is always 1 which makes it stretch
+//		symbol.setModuleWidth(2);
 		symbol.setContent(text);
-		symbol.setBarHeight(height == null ? 100 : height);
+		
+		// instead of trying to resize the original symbol (which is hard or impossible to do cross implementation)
+		// we calculate the magnification factor
+		// this also seems to be the way it is done in OkapiUI: https://github.com/woo-j/OkapiBarcode/blob/master/src/main/java/uk/org/okapibarcode/gui/OkapiUI.java
+		double factor = height == null ? 1 : height / symbol.getHeight();
 		
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
-		new SvgRenderer(output, 1, Color.WHITE, Color.BLACK, false).render(symbol);
+		new SvgRenderer(output, factor, Color.WHITE, Color.BLACK, false).render(symbol);
 		return new ByteArrayInputStream(output.toByteArray());
 	}
 	
@@ -62,12 +73,17 @@ public class Services {
 		Symbol symbol = type.getTargetClass().newInstance();
 		symbol.setHumanReadableLocation(humanReadableLocation == null ? HumanReadableLocation.NONE : humanReadableLocation);
 		symbol.setHumanReadableAlignment(humanReadableAlignment);
+		symbol.setFontName("Monospaced");
+		symbol.setFontSize(16);
+//		symbol.setBarHeight(height == null ? 100 : height);
+//		symbol.setModuleWidth(height == null ? 100 : height);
 		symbol.setContent(text);
-		symbol.setBarHeight(height == null ? 100 : height);
+
+		double factor = height == null ? 1 : height / symbol.getHeight();
 		
-		BufferedImage image = new BufferedImage(symbol.getWidth(), symbol.getHeight(), BufferedImage.TYPE_BYTE_GRAY);
+		BufferedImage image = new BufferedImage((int) (symbol.getWidth() * factor), (int) (symbol.getHeight() * factor), BufferedImage.TYPE_BYTE_GRAY);
 		Graphics2D g2d = image.createGraphics();
-		Java2DRenderer renderer = new Java2DRenderer(g2d, 1, Color.WHITE, Color.BLACK);
+		Java2DRenderer renderer = new Java2DRenderer(g2d, factor, Color.WHITE, Color.BLACK);
 		renderer.render(symbol);
 		
 		Iterator<ImageWriter> writers = ImageIO.getImageWritersByMIMEType(contentType);
